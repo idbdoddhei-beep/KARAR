@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ZArchiver — مدير الأرشيف والملفات</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232e7d32'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'>Z</text></svg>">
+</head>
+<body>
+<div id="app">
+  <!-- App Bar -->
+  <header id="appbar">
+    <button id="btn-menu" class="icon-btn" title="القائمة">☰</button>
+    <div id="appbar-title-wrap">
+      <div id="appbar-title">ZArchiver</div>
+      <div id="appbar-path">/التخزين الداخلي</div>
+    </div>
+    <div class="spacer"></div>
+    <button id="btn-lang" class="icon-btn" title="اللغة / Language">🌐</button>
+    <button id="btn-search" class="icon-btn" title="بحث">🔍</button>
+    <button id="btn-view" class="icon-btn" title="تبديل العرض">▦</button>
+    <button id="btn-sort" class="icon-btn" title="ترتيب">⇅</button>
+    <button id="btn-more" class="icon-btn" title="المزيد">⋮</button>
+  </header>
+
+  <!-- Search bar -->
+  <div id="searchbar" class="hidden">
+    <input id="search-input" type="text" placeholder="ابحث عن ملف أو مجلد…">
+    <button id="search-close" class="icon-btn">✕</button>
+  </div>
+
+  <!-- Storage info -->
+  <div id="storagebar">
+    <div id="crumbs"></div>
+    <div id="storage-meta"><span id="storage-count"></span><span id="storage-size"></span></div>
+  </div>
+
+  <div id="main-row">
+    <!-- Drawer -->
+    <aside id="drawer">
+      <div class="drawer-head">
+        <div class="drawer-logo">Z</div>
+        <div><div class="drawer-name">ZArchiver Web</div><div class="drawer-sub">مدير الضغط والملفات</div></div>
+      </div>
+      <nav id="drawer-nav">
+        <button class="nav-item active" data-nav="home" data-i18n="nav_home">📁 التخزين الداخلي</button>
+        <button class="nav-item" data-nav="android_data" data-i18n="nav_data">📂 Android/data</button>
+        <button class="nav-item" data-nav="android_obb" data-i18n="nav_obb">📦 Android/obb</button>
+        <button class="nav-item" data-nav="archives" data-i18n="nav_arch">🗜️ الأرشيفات</button>
+        <button class="nav-item" data-nav="images">🖼️ الصور</button>
+        <button class="nav-item" data-nav="videos">🎬 الفيديو والصوت</button>
+        <button class="nav-item" data-nav="docs">📄 المستندات</button>
+        <hr>
+        <button class="nav-item" data-nav="recent">🕘 الأحدث</button>
+        <button class="nav-item" data-nav="settings">⚙️ الإعدادات</button>
+        <button class="nav-item" data-nav="about">ℹ️ حول</button>
+      </nav>
+      <div class="drawer-foot">
+        <div class="storage-pie"><div id="pie-fill"></div></div>
+        <div id="drawer-storage-text"></div>
+        <button id="btn-reset-demo" class="link-btn">استعادة ملفات العرض</button>
+      </div>
+    </aside>
+    <div id="drawer-scrim" class="hidden"></div>
+
+    <!-- File list -->
+    <main id="content">
+      <div id="drop-hint" data-i18n="drop">أفلت الملفات هنا للرفع 📥</div>
+      <div id="access-banner" class="hidden">
+        <span id="access-text"></span>
+        <div class="access-btns">
+          <button id="btn-link-folder">📂 منح الوصول وربط المجلد</button>
+          <button id="btn-access-help">❓ طريقة الوصول</button>
+        </div>
+      </div>
+      <div id="archive-banner" class="hidden">
+        <span id="archive-banner-text"></span>
+        <button id="archive-close">✕ إغلاق الأرشيف</button>
+      </div>
+      <ul id="filelist"></ul>
+      <div id="empty" class="hidden">
+        <div class="empty-icon">📂</div>
+        <div>المجلد فارغ</div>
+        <div class="empty-sub">استخدم زر + لإنشاء مجلد أو رفع ملفات</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Selection toolbar -->
+  <div id="selbar" class="hidden">
+    <span id="sel-count">0 محدد</span>
+    <div class="sel-actions">
+      <button data-act="zip">🗜️ ضغط</button>
+      <button data-act="download">⬇️ تنزيل</button>
+      <button data-act="copy">📋 نسخ</button>
+      <button data-act="cut">✂️ قص</button>
+      <button data-act="delete">🗑️ حذف</button>
+      <button data-act="clear">✕</button>
+    </div>
+  </div>
+
+  <!-- Paste bar -->
+  <div id="pastebar" class="hidden">
+    <span id="paste-text"></span>
+    <button id="btn-paste">📥 لصق هنا</button>
+    <button id="btn-paste-cancel">إلغاء</button>
+  </div>
+
+  <!-- FAB -->
+  <div id="fab-wrap">
+    <div id="fab-menu" class="hidden">
+      <button data-fab="folder">📁 مجلد جديد</button>
+      <button data-fab="file">📄 ملف نصي</button>
+      <button data-fab="upload">📤 رفع ملفات</button>
+      <button data-fab="zip">🗜️ أرشيف ZIP</button>
+      <button data-fab="tar">📦 أرشيف TAR</button>
+    </div>
+    <button id="fab">+</button>
+  </div>
+
+  <input type="file" id="file-input" multiple class="hidden">
+</div>
+
+<!-- Context menu -->
+<div id="ctx" class="hidden"></div>
+<!-- Sort menu -->
+<div id="sort-menu" class="hidden">
+  <button data-sort="name">الاسم</button>
+  <button data-sort="mtime">التاريخ</button>
+  <button data-sort="size">الحجم</button>
+  <button data-sort="type">النوع</button>
+  <hr>
+  <button data-sortdir="toggle">⇅ عكس الاتجاه</button>
+</div>
+<!-- Top-right menu -->
+<div id="top-menu" class="hidden">
+  <button data-top="paste">📥 لصق</button>
+  <button data-top="select-all">☑️ تحديد الكل</button>
+  <button data-top="download-dir">⬇️ تنزيل المجلد ZIP</button>
+  <button data-top="lang">🌐 العربية / English</button>
+  <button data-top="theme">🌙 تبديل المظهر</button>
+  <button data-top="about">ℹ️ حول التطبيق</button>
+</div>
+
+<!-- Folder picker (fallback for File System Access API) -->
+<input type="file" id="dir-input" class="hidden" webkitdirectory multiple>
+
+<!-- Generic dialog -->
+<div id="dlg-scrim" class="hidden">
+  <div id="dlg">
+    <h3 id="dlg-title"></h3>
+    <div id="dlg-body"></div>
+    <div id="dlg-actions"></div>
+  </div>
+</div>
+
+<!-- Preview -->
+<div id="preview-scrim" class="hidden">
+  <div id="preview-box">
+    <div id="preview-head"><span id="preview-name"></span><button id="preview-close">✕</button></div>
+    <div id="preview-body"></div>
+    <div id="preview-foot"><button id="preview-download">⬇️ تنزيل</button><span id="preview-info"></span></div>
+  </div>
+</div>
+
+<!-- Progress -->
+<div id="prog-scrim" class="hidden">
+  <div id="prog-box"><div id="prog-title">جاري المعالجة…</div><div class="prog-track"><div id="prog-fill"></div></div><div id="prog-text"></div></div>
+</div>
+
+<div id="toasts"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
